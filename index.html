@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🟢 MATRIX QR SCANNER</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body {
+      background-color: black;
+      color: #00FF00;
+      font-family: Consolas, monospace;
+      text-align: center;
+      padding: 10px;
+    }
+
+    input, button, textarea {
+      background: black;
+      color: #00FF00;
+      font-family: Consolas;
+      border: 1px solid #00FF00;
+      margin: 5px;
+      padding: 8px;
+    }
+
+    #reader {
+      margin: auto;
+      width: 300px;
+      max-width: 90vw;
+      border: 2px solid #00FF00;
+    }
+
+    textarea {
+      width: 90%;
+      height: 180px;
+    }
+
+    @media (max-width: 600px) {
+      textarea {
+        height: 150px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>🟢 MATRIX QR SCANNER</h1>
+  <label for="backend-url">🌐 URL Backend:</label><br>
+  <input type="text" id="backend-url" value="http://localhost:5000"><br>
+
+  <div id="reader"></div>
+  <h2 id="status">🟢 LISTO PARA ESCANEAR</h2>
+
+  <textarea id="output" readonly></textarea><br>
+  <button onclick="resetScanner()">🧹 LIMPIAR</button>
+
+  <script>
+    const status = document.getElementById("status");
+    const output = document.getElementById("output");
+    const backendInput = document.getElementById("backend-url");
+    let lastQR = null;
+    let scanner = null;
+
+    async function validateQR(content) {
+      const backend = backendInput.value.trim();
+      const url = backend + "/validar_qr";
+      status.textContent = "🔍 VALIDANDO...";
+
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contenido_qr: content })
+        });
+
+        const data = await res.json();
+        output.value = "";
+
+        if (data.status === "ok") {
+          status.textContent = `✅ VALIDADO: ${data.datos.NOMBRES}`;
+          output.value = formatData(data.datos);
+        } else if (data.status === "usado") {
+          status.textContent = `⚠️ YA INGRESÓ: ${data.datos.NOMBRES}`;
+          output.value = formatData(data.datos);
+        } else {
+          status.textContent = "❌ QR INVÁLIDO";
+        }
+      } catch (error) {
+        status.textContent = "❌ ERROR EN LA VALIDACIÓN";
+        output.value = error.toString();
+      }
+
+      setTimeout(() => {
+        lastQR = null;
+        status.textContent = "🟢 LISTO PARA ESCANEAR";
+      }, 2000);
+    }
+
+    function formatData(obj) {
+      return Object.entries(obj).map(([k, v]) => `${k}: ${v}`).join("\n");
+    }
+
+    function resetScanner() {
+      lastQR = null;
+      output.value = "";
+      status.textContent = "🟢 LISTO PARA ESCANEAR";
+      scanner.stop().then(startScanner);
+    }
+
+    function startScanner() {
+      scanner = new Html5Qrcode("reader");
+      scanner.start(
+        { facingMode: "environment" }, // usa cámara trasera en móviles
+        { fps: 10, qrbox: 250 },
+        (decodedText) => {
+          if (decodedText !== lastQR) {
+            lastQR = decodedText;
+            validateQR(decodedText);
+          }
+        },
+        (errorMessage) => {
+          // ignoramos errores de lectura
+        }
+      ).catch((err) => {
+        status.textContent = "❌ ERROR INICIANDO ESCÁNER";
+        output.value = err.toString();
+      });
+    }
+
+    startScanner();
+  </script>
+</body>
+</html>
