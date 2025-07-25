@@ -13,7 +13,6 @@
       text-align: center;
       padding: 10px;
     }
-
     input, button, textarea {
       background: black;
       color: #00FF00;
@@ -22,30 +21,22 @@
       margin: 5px;
       padding: 8px;
     }
-
     #reader {
       margin: auto;
       width: 300px;
       max-width: 90vw;
       border: 2px solid #00FF00;
     }
-
     textarea {
       width: 90%;
       height: 180px;
-    }
-
-    @media (max-width: 600px) {
-      textarea {
-        height: 150px;
-      }
     }
   </style>
 </head>
 <body>
   <h1>🟢 MATRIX QR SCANNER</h1>
-  <label for="backend-url">🌐 URL Backend:</label><br>
-  <input type="text" id="backend-url" value="http://localhost:5000"><br>
+  <label for="backend-url">🌐 URL Backend (HTTPS):</label><br>
+  <input type="text" id="backend-url" value="https://TU_BACKEND_AQUI"><br>
 
   <div id="reader"></div>
   <h2 id="status">🟢 LISTO PARA ESCANEAR</h2>
@@ -61,7 +52,7 @@
     let scanner = null;
 
     async function validateQR(content) {
-      const backend = backendInput.value.trim();
+      const backend = backendInput.value.trim().replace(/\/$/, '');
       const url = backend + "/validar_qr";
       status.textContent = "🔍 VALIDANDO...";
 
@@ -109,7 +100,7 @@
     function startScanner() {
       scanner = new Html5Qrcode("reader");
       scanner.start(
-        { facingMode: "environment" }, // usa cámara trasera en móviles
+        { facingMode: "environment" },
         { fps: 10, qrbox: 250 },
         (decodedText) => {
           if (decodedText !== lastQR) {
@@ -117,9 +108,7 @@
             validateQR(decodedText);
           }
         },
-        (errorMessage) => {
-          // ignoramos errores de lectura
-        }
+        (errorMessage) => {}
       ).catch((err) => {
         status.textContent = "❌ ERROR INICIANDO ESCÁNER";
         output.value = err.toString();
@@ -130,3 +119,4 @@
   </script>
 </body>
 </html>
+
