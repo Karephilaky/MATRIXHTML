@@ -31,19 +31,21 @@
       width: 90%;
       height: 180px;
     }
-    #backend-status {
+    #backend-status, #contador {
       font-weight: bold;
-      margin-bottom: 10px;
+      margin: 10px 0;
     }
   </style>
 </head>
 <body>
   <h1>🟢 MATRIX QR SCANNER</h1>
+
   <label for="backend-url">🌐 URL Backend (HTTPS):</label><br>
   <input type="text" id="backend-url" value="https://TU_BACKEND_AQUI"><br>
 
   <div id="backend-status">🟡 Verificando conexión...</div>
   <button onclick="checkBackend()">🔄 Reintentar conexión</button>
+  <div id="contador">📊 Ingresados: 0 / 0</div>
 
   <div id="reader"></div>
   <h2 id="status">🟢 LISTO PARA ESCANEAR</h2>
@@ -56,6 +58,8 @@
     const output = document.getElementById("output");
     const backendInput = document.getElementById("backend-url");
     const backendStatus = document.getElementById("backend-status");
+    const contador = document.getElementById("contador");
+
     let lastQR = null;
     let scanner = null;
     let backendDisponible = false;
@@ -73,6 +77,7 @@
         if (res.ok || res.status === 405) {
           backendStatus.textContent = "🟢 Conectado al backend";
           backendDisponible = true;
+          actualizarContador();
           if (!scanner) startScanner();
         } else {
           backendStatus.textContent = "🔴 Backend no responde";
@@ -105,6 +110,7 @@
         if (data.status === "ok") {
           status.textContent = `✅ VALIDADO: ${data.datos.NOMBRES}`;
           output.value = formatData(data.datos);
+          actualizarContador();
         } else if (data.status === "usado") {
           status.textContent = `⚠️ YA INGRESÓ: ${data.datos.NOMBRES}`;
           output.value = formatData(data.datos);
@@ -120,6 +126,21 @@
         lastQR = null;
         status.textContent = "🟢 LISTO PARA ESCANEAR";
       }, 2000);
+    }
+
+    async function actualizarContador() {
+      const backend = backendInput.value.trim().replace(/\/$/, '');
+      try {
+        const res = await fetch(backend + "/estadisticas_ingreso");
+        const data = await res.json();
+        if (data.status === "ok") {
+          contador.textContent = `📊 Ingresados: ${data.ingresados} / ${data.total}`;
+        } else {
+          contador.textContent = "⚠️ Error en contador";
+        }
+      } catch {
+        contador.textContent = "❌ No se puede conectar al backend";
+      }
     }
 
     function formatData(obj) {
@@ -153,9 +174,15 @@
       });
     }
 
-    backendInput.addEventListener("change", checkBackend);
-    window.onload = checkBackend;
+    window.onload = () => {
+      checkBackend();
+      setInterval(actualizarContador, 5000); // actualiza contador cada 5s
+    };
+
+    backendInput.addEventListener("change", () => {
+      checkBackend();
+      setTimeout(actualizarContador, 1000);
+    });
   </script>
 </body>
 </html>
-
