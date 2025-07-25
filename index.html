@@ -45,7 +45,7 @@
 
   <div id="backend-status">🟡 Verificando conexión...</div>
   <button onclick="checkBackend()">🔄 Reintentar conexión</button>
-  <div id="contador">📊 Ingresados: 0 / 0</div>
+  <div id="contador">📊 Ingresados: 0 / 0 (0%)</div>
 
   <div id="reader"></div>
   <h2 id="status">🟢 LISTO PARA ESCANEAR</h2>
@@ -134,7 +134,7 @@
         const res = await fetch(backend + "/estadisticas_ingreso");
         const data = await res.json();
         if (data.status === "ok") {
-          contador.textContent = `📊 Ingresados: ${data.ingresados} / ${data.total}`;
+          contador.textContent = `📊 Ingresados: ${data.ingresados} / ${data.total} (${data.porcentaje}%)`;
         } else {
           contador.textContent = "⚠️ Error en contador";
         }
@@ -176,7 +176,7 @@
 
     window.onload = () => {
       checkBackend();
-      setInterval(actualizarContador, 5000); // actualiza contador cada 5s
+      setInterval(actualizarContador, 5000); // cada 5s
     };
 
     backendInput.addEventListener("change", () => {
@@ -186,3 +186,4 @@
   </script>
 </body>
 </html>
+
