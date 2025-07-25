@@ -31,21 +31,19 @@
       width: 90%;
       height: 180px;
     }
-    #backend-status, #contador {
+    #backend-status {
       font-weight: bold;
-      margin: 10px 0;
+      margin-bottom: 10px;
     }
   </style>
 </head>
 <body>
   <h1>🟢 MATRIX QR SCANNER</h1>
-
   <label for="backend-url">🌐 URL Backend (HTTPS):</label><br>
   <input type="text" id="backend-url" value="https://TU_BACKEND_AQUI"><br>
 
   <div id="backend-status">🟡 Verificando conexión...</div>
   <button onclick="checkBackend()">🔄 Reintentar conexión</button>
-  <div id="contador">📊 Ingresados: 0 / 0 (0%)</div>
 
   <div id="reader"></div>
   <h2 id="status">🟢 LISTO PARA ESCANEAR</h2>
@@ -58,36 +56,31 @@
     const output = document.getElementById("output");
     const backendInput = document.getElementById("backend-url");
     const backendStatus = document.getElementById("backend-status");
-    const contador = document.getElementById("contador");
-
     let lastQR = null;
     let scanner = null;
     let backendDisponible = false;
 
     async function checkBackend() {
-  const backend = backendInput.value.trim().replace(/\/$/, '');
-  backendStatus.textContent = "🟡 Verificando conexión...";
-  backendDisponible = false;
+      const backend = backendInput.value.trim().replace(/\/$/, '');
+      backendStatus.textContent = "🟡 Verificando conexión...";
+      backendDisponible = false;
 
-  try {
-    const res = await fetch(`${backend}/estadisticas_ingreso`);
-    const contentType = res.headers.get("content-type");
-
-    if (res.ok && contentType && contentType.includes("application/json")) {
-      backendStatus.textContent = "🟢 Conectado al backend";
-      backendDisponible = true;
-      actualizarContador();
-      if (!scanner) startScanner();
-    } else {
-      backendStatus.textContent = "🔴 Respuesta inválida del backend";
-      contador.textContent = "❌ El backend no devolvió JSON";
+      try {
+        const res = await fetch(backend + "/validar_qr", {
+          method: "OPTIONS",
+          mode: "cors"
+        });
+        if (res.ok || res.status === 405) {
+          backendStatus.textContent = "🟢 Conectado al backend";
+          backendDisponible = true;
+          if (!scanner) startScanner();
+        } else {
+          backendStatus.textContent = "🔴 Backend no responde";
+        }
+      } catch (err) {
+        backendStatus.textContent = "🔴 Error de conexión";
+      }
     }
-  } catch (err) {
-    backendStatus.textContent = "🔴 Error de conexión";
-    contador.textContent = "❌ No se puede conectar al backend";
-  }
-}
-
 
     async function validateQR(content) {
       if (!backendDisponible) {
@@ -112,13 +105,11 @@
         if (data.status === "ok") {
           status.textContent = `✅ VALIDADO: ${data.datos.NOMBRES}`;
           output.value = formatData(data.datos);
-          actualizarContador();
         } else if (data.status === "usado") {
           status.textContent = `⚠️ YA INGRESÓ: ${data.datos.NOMBRES}`;
           output.value = formatData(data.datos);
         } else {
           status.textContent = "❌ QR INVÁLIDO";
-          output.value = data.message || "No se reconoció el QR";
         }
       } catch (error) {
         status.textContent = "❌ ERROR EN LA VALIDACIÓN";
@@ -130,33 +121,6 @@
         status.textContent = "🟢 LISTO PARA ESCANEAR";
       }, 2000);
     }
-
-   async function actualizarContador() {
-    if (!backendDisponible) {
-      contador.textContent = "⏳ Esperando conexión...";
-      return;
-    }
-
-    const backend = backendInput.value.trim().replace(/\/$/, '');
-    const url = `${backend}/estadisticas_ingreso`;
-
-    try {
-      const res = await fetch(url);
-      if (!res.ok) {
-        contador.textContent = `❌ Error ${res.status} en contador`;
-        return;
-      }
-      const data = await res.json();
-      if (data.status === "ok") {
-        contador.textContent = `📊 Ingresados: ${data.ingresados} / ${data.total} (${data.porcentaje}%)`;
-      } else {
-        contador.textContent = "⚠️ Error en contador: respuesta inválida";
-      }
-    } catch (error) {
-      contador.textContent = `❌ Error: ${error.message}`;
-    }
-}
-
 
     function formatData(obj) {
       return Object.entries(obj).map(([k, v]) => `${k}: ${v}`).join("\n");
@@ -189,19 +153,9 @@
       });
     }
 
-    window.onload = () => {
-      checkBackend();
-      setInterval(() => {
-        if (backendDisponible) actualizarContador();
-      }, 5000);
-    };
-
-    backendInput.addEventListener("change", () => {
-      checkBackend();
-      setTimeout(() => {
-        if (backendDisponible) actualizarContador();
-      }, 1000);
-    });
+    backendInput.addEventListener("change", checkBackend);
+    window.onload = checkBackend;
   </script>
 </body>
 </html>
+
