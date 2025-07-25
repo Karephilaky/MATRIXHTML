@@ -131,20 +131,32 @@
       }, 2000);
     }
 
-    async function actualizarContador() {
-      const backend = backendInput.value.trim().replace(/\/$/, '');
-      try {
-        const res = await fetch(backend + "/estadisticas_ingreso");
-        const data = await res.json();
-        if (data.status === "ok") {
-          contador.textContent = `📊 Ingresados: ${data.ingresados} / ${data.total} (${data.porcentaje}%)`;
-        } else {
-          contador.textContent = "⚠️ Error en contador";
-        }
-      } catch {
-        contador.textContent = "❌ No se puede conectar al backend";
-      }
+   async function actualizarContador() {
+    if (!backendDisponible) {
+      contador.textContent = "⏳ Esperando conexión...";
+      return;
     }
+
+    const backend = backendInput.value.trim().replace(/\/$/, '');
+    const url = `${backend}/estadisticas_ingreso`;
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        contador.textContent = `❌ Error ${res.status} en contador`;
+        return;
+      }
+      const data = await res.json();
+      if (data.status === "ok") {
+        contador.textContent = `📊 Ingresados: ${data.ingresados} / ${data.total} (${data.porcentaje}%)`;
+      } else {
+        contador.textContent = "⚠️ Error en contador: respuesta inválida";
+      }
+    } catch (error) {
+      contador.textContent = `❌ Error: ${error.message}`;
+    }
+}
+
 
     function formatData(obj) {
       return Object.entries(obj).map(([k, v]) => `${k}: ${v}`).join("\n");
