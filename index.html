@@ -81,9 +81,11 @@
           if (!scanner) startScanner();
         } else {
           backendStatus.textContent = "🔴 Backend no responde";
+          contador.textContent = "❌ No se puede conectar al backend";
         }
       } catch (err) {
         backendStatus.textContent = "🔴 Error de conexión";
+        contador.textContent = "❌ No se puede conectar al backend";
       }
     }
 
@@ -116,6 +118,7 @@
           output.value = formatData(data.datos);
         } else {
           status.textContent = "❌ QR INVÁLIDO";
+          output.value = data.message || "No se reconoció el QR";
         }
       } catch (error) {
         status.textContent = "❌ ERROR EN LA VALIDACIÓN";
@@ -176,12 +179,16 @@
 
     window.onload = () => {
       checkBackend();
-      setInterval(actualizarContador, 5000);
+      setInterval(() => {
+        if (backendDisponible) actualizarContador();
+      }, 5000);
     };
 
     backendInput.addEventListener("change", () => {
       checkBackend();
-      setTimeout(actualizarContador, 1000);
+      setTimeout(() => {
+        if (backendDisponible) actualizarContador();
+      }, 1000);
     });
   </script>
 </body>
