@@ -31,12 +31,19 @@
       width: 90%;
       height: 180px;
     }
+    #backend-status {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
   <h1>🟢 MATRIX QR SCANNER</h1>
   <label for="backend-url">🌐 URL Backend (HTTPS):</label><br>
   <input type="text" id="backend-url" value="https://TU_BACKEND_AQUI"><br>
+
+  <div id="backend-status">🟡 Verificando conexión...</div>
+  <button onclick="checkBackend()">🔄 Reintentar conexión</button>
 
   <div id="reader"></div>
   <h2 id="status">🟢 LISTO PARA ESCANEAR</h2>
@@ -48,10 +55,39 @@
     const status = document.getElementById("status");
     const output = document.getElementById("output");
     const backendInput = document.getElementById("backend-url");
+    const backendStatus = document.getElementById("backend-status");
     let lastQR = null;
     let scanner = null;
+    let backendDisponible = false;
+
+    async function checkBackend() {
+      const backend = backendInput.value.trim().replace(/\/$/, '');
+      backendStatus.textContent = "🟡 Verificando conexión...";
+      backendDisponible = false;
+
+      try {
+        const res = await fetch(backend + "/validar_qr", {
+          method: "OPTIONS",
+          mode: "cors"
+        });
+        if (res.ok || res.status === 405) {
+          backendStatus.textContent = "🟢 Conectado al backend";
+          backendDisponible = true;
+          if (!scanner) startScanner();
+        } else {
+          backendStatus.textContent = "🔴 Backend no responde";
+        }
+      } catch (err) {
+        backendStatus.textContent = "🔴 Error de conexión";
+      }
+    }
 
     async function validateQR(content) {
+      if (!backendDisponible) {
+        status.textContent = "⛔ Sin conexión con backend";
+        return;
+      }
+
       const backend = backendInput.value.trim().replace(/\/$/, '');
       const url = backend + "/validar_qr";
       status.textContent = "🔍 VALIDANDO...";
@@ -94,7 +130,9 @@
       lastQR = null;
       output.value = "";
       status.textContent = "🟢 LISTO PARA ESCANEAR";
-      scanner.stop().then(startScanner);
+      if (scanner) {
+        scanner.stop().then(startScanner);
+      }
     }
 
     function startScanner() {
@@ -115,7 +153,8 @@
       });
     }
 
-    startScanner();
+    backendInput.addEventListener("change", checkBackend);
+    window.onload = checkBackend;
   </script>
 </body>
 </html>
