@@ -65,29 +65,29 @@
     let backendDisponible = false;
 
     async function checkBackend() {
-      const backend = backendInput.value.trim().replace(/\/$/, '');
-      backendStatus.textContent = "🟡 Verificando conexión...";
-      backendDisponible = false;
+  const backend = backendInput.value.trim().replace(/\/$/, '');
+  backendStatus.textContent = "🟡 Verificando conexión...";
+  backendDisponible = false;
 
-      try {
-        const res = await fetch(backend + "/validar_qr", {
-          method: "OPTIONS",
-          mode: "cors"
-        });
-        if (res.ok || res.status === 405) {
-          backendStatus.textContent = "🟢 Conectado al backend";
-          backendDisponible = true;
-          actualizarContador();
-          if (!scanner) startScanner();
-        } else {
-          backendStatus.textContent = "🔴 Backend no responde";
-          contador.textContent = "❌ No se puede conectar al backend";
-        }
-      } catch (err) {
-        backendStatus.textContent = "🔴 Error de conexión";
-        contador.textContent = "❌ No se puede conectar al backend";
-      }
+  try {
+    const res = await fetch(`${backend}/estadisticas_ingreso`);
+    const contentType = res.headers.get("content-type");
+
+    if (res.ok && contentType && contentType.includes("application/json")) {
+      backendStatus.textContent = "🟢 Conectado al backend";
+      backendDisponible = true;
+      actualizarContador();
+      if (!scanner) startScanner();
+    } else {
+      backendStatus.textContent = "🔴 Respuesta inválida del backend";
+      contador.textContent = "❌ El backend no devolvió JSON";
     }
+  } catch (err) {
+    backendStatus.textContent = "🔴 Error de conexión";
+    contador.textContent = "❌ No se puede conectar al backend";
+  }
+}
+
 
     async function validateQR(content) {
       if (!backendDisponible) {
